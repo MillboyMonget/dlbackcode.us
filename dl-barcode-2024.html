@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DL Back Barcode Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bwip-js/4.5.1/bwip-js-min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
+
+  :root {
+    --bg: #0a0c10;
+    --panel: #111418;
+    --border: #1e2530;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --text: #c8d8e8;
+    --muted: #4a5a6a;
+    --success: #00ff9d;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 4rem;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(0,212,255,0.015) 40px, rgba(0,212,255,0.015) 41px),
+      repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(0,212,255,0.015) 40px, rgba(0,212,255,0.015) 41px);
+  }
+
+  header { text-align: center; margin-bottom: 2rem; }
+
+  .badge {
+    display: inline-block;
+    background: rgba(0,212,255,0.1);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 3px;
+    padding: 4px 12px;
+    margin-bottom: 0.75rem;
+  }
+
+  h1 { font-size: 2.2rem; font-weight: 700; letter-spacing: 2px; color: #fff; text-transform: uppercase; }
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--muted);
+    font-size: 0.8rem;
+    margin-top: 0.4rem;
+    letter-spacing: 1px;
+  }
+
+  .disclaimer {
+    background: rgba(255,107,53,0.08);
+    border: 1px solid rgba(255,107,53,0.25);
+    color: var(--accent2);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 1px;
+    padding: 10px 14px;
+    margin-bottom: 1.5rem;
+    max-width: 860px;
+    width: 100%;
+    line-height: 1.7;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 860px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+
+  @media (max-width: 680px) { .container { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 1.5rem;
+    position: relative;
+  }
+
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), transparent);
+  }
+
+  .panel-title {
+    font-size: 0.7rem;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-transform: uppercase;
+    font-family: 'Share Tech Mono', monospace;
+    margin-bottom: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  label {
+    display: block;
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 0.3rem;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  input, select {
+    width: 100%;
+    background: #0d1017;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem;
+    padding: 8px 10px;
+    margin-bottom: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  input:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px rgba(0,212,255,0.15);
+  }
+
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+
+  button {
+    width: 100%;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 12px;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 0.5rem;
+  }
+
+  button:hover { background: #33ddff; transform: translateY(-1px); }
+  button:active { transform: translateY(0); }
+
+  .btn-download {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    margin-top: 0.75rem;
+  }
+
+  .btn-download:hover { background: rgba(0,212,255,0.1); transform: none; }
+
+  .output-panel {
+    grid-column: 1 / -1;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem;
+  }
+
+  .output-panel.visible { display: flex; }
+
+  .output-panel .panel-title { width: 100%; }
+
+  .barcode-wrap {
+    background: #fff;
+    padding: 24px 28px 14px;
+    display: inline-block;
+    box-shadow: 0 0 50px rgba(0,212,255,0.2);
+  }
+
+  #barcodeCanvas { display: block; }
+
+  .barcode-label {
+    text-align: center;
+    margin-top: 8px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    color: #333;
+    letter-spacing: 2px;
+  }
+
+  .status-msg {
+    margin-top: 1rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--success);
+    letter-spacing: 2px;
+  }
+
+  .error-msg {
+    margin-top: 1rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--accent2);
+    letter-spacing: 1px;
+  }
+
+  /* DL Card */
+  .dl-card {
+    margin-top: 2rem;
+    width: 100%;
+    max-width: 520px;
+    background: linear-gradient(135deg, #e8e0d0 0%, #f2ead8 100%);
+    border: 1px solid #bbb;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    color: #222;
+  }
+
+  .dl-card-header {
+    background: #1a3a6e;
+    color: #fff;
+    padding: 6px 12px;
+    font-size: 0.6rem;
+    letter-spacing: 3px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .dl-card-header span { opacity: 0.6; font-size: 0.5rem; }
+
+  .mag-stripe {
+    background: #111;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    position: relative;
+  }
+
+  .mag-stripe::after {
+    content: 'MAGNETIC STRIPE';
+    position: absolute;
+    right: 10px;
+    color: #444;
+    font-size: 0.45rem;
+    letter-spacing: 2px;
+  }
+
+  .mag-stripe-band {
+    height: 18px;
+    width: 100%;
+    background: repeating-linear-gradient(90deg, #1a1a1a 0px, #2a2a2a 2px, #1a1a1a 4px);
+  }
+
+  .dl-card-body { padding: 10px 14px 14px; }
+
+  .dl-info-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 10px;
+    font-size: 0.55rem;
+    color: #555;
+    letter-spacing: 1px;
+  }
+
+  .dl-info-row b {
+    color: #111;
+    font-weight: normal;
+    display: block;
+    margin-top: 2px;
+    font-size: 0.65rem;
+  }
+
+  .dl-barcode-area {
+    background: #fff;
+    padding: 8px;
+    margin-top: 4px;
+    text-align: center;
+    border: 1px solid #ddd;
+  }
+
+  #previewCanvas { max-width: 100%; display: block; margin: 0 auto; }
+
+  .dl-barcode-label {
+    font-size: 0.45rem;
+    color: #888;
+    letter-spacing: 2px;
+    margin-top: 4px;
+  }
+
+  .dl-card-footer {
+    background: #1a3a6e;
+    color: rgba(255,255,255,0.45);
+    font-size: 0.45rem;
+    letter-spacing: 2px;
+    padding: 4px 12px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="badge">▸ AAMVA DL/ID Standard · PDF417</div>
+  <h1>DL Back <span>Barcode</span> Generator</h1>
+  <p class="subtitle">// For Software Testing &amp; Development Only</p>
+</header>
+
+<div class="disclaimer">
+  ⚠ TRIAL / TESTING USE ONLY — Generates real PDF417 barcodes in AAMVA format for app development,
+  scanner testing, and mock data pipelines. Not for use in fraudulent identification.
+</div>
+
+<div class="container">
+
+  <div class="panel">
+    <div class="panel-title">Identity Fields</div>
+
+    <div class="row">
+      <div>
+        <label>First Name</label>
+        <input type="text" id="firstName" value="JOHN" maxlength="40">
+      </div>
+      <div>
+        <label>Last Name</label>
+        <input type="text" id="lastName" value="DOE" maxlength="40">
+      </div>
+    </div>
+
+    <label>Middle Name</label>
+    <input type="text" id="middleName" value="MICHAEL" maxlength="40">
+
+    <div class="row">
+      <div>
+        <label>Date of Birth</label>
+        <input type="date" id="dob" value="1990-06-15">
+      </div>
+      <div>
+        <label>Sex</label>
+        <select id="sex">
+          <option value="1">Male</option>
+          <option value="2">Female</option>
+          <option value="9">Not Specified</option>
+        </select>
+      </div>
+    </div>
+
+    <label>DL / ID Number</label>
+    <input type="text" id="dlNumber" value="D1234567" maxlength="25">
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">Address &amp; License</div>
+
+    <label>Street Address</label>
+    <input type="text" id="street" value="123 MAIN STREET" maxlength="50">
+
+    <div class="row">
+      <div>
+        <label>City</label>
+        <input type="text" id="city" value="ANYTOWN" maxlength="30">
+      </div>
+      <div>
+        <label>State</label>
+        <select id="state">
+          <option>AL</option><option>AK</option><option>AZ</option><option>AR</option>
+          <option selected>CA</option><option>CO</option><option>CT</option><option>DE</option>
+          <option>FL</option><option>GA</option><option>HI</option><option>ID</option>
+          <option>IL</option><option>IN</option><option>IA</option><option>KS</option>
+          <option>KY</option><option>LA</option><option>ME</option><option>MD</option>
+          <option>MA</option><option>MI</option><option>MN</option><option>MS</option>
+          <option>MO</option><option>MT</option><option>NE</option><option>NV</option>
+          <option>NH</option><option>NJ</option><option>NM</option><option>NY</option>
+          <option>NC</option><option>ND</option><option>OH</option><option>OK</option>
+          <option>OR</option><option>PA</option><option>RI</option><option>SC</option>
+          <option>SD</option><option>TN</option><option>TX</option><option>UT</option>
+          <option>VT</option><option>VA</option><option>WA</option><option>WV</option>
+          <option>WI</option><option>WY</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>ZIP Code</label>
+        <input type="text" id="zip" value="902100000" maxlength="9">
+      </div>
+      <div>
+        <label>Expiry Date</label>
+        <input type="date" id="expiry" value="2028-06-15">
+      </div>
+    </div>
+
+    <label>Issue Date</label>
+    <input type="date" id="issued" value="2022-06-15">
+
+    <button onclick="generateBarcode()">⬡ Generate Barcode</button>
+    <button class="btn-download" onclick="downloadBarcode()">↓ Download PNG</button>
+  </div>
+
+  <!-- Output -->
+  <div class="panel output-panel" id="outputPanel">
+    <div class="panel-title">Generated PDF417</div>
+
+    <div class="barcode-wrap">
+      <canvas id="barcodeCanvas"></canvas>
+      <div class="barcode-label" id="barcodeLabel"></div>
+    </div>
+
+    <div class="status-msg" id="statusMsg"></div>
+    <div class="error-msg"  id="errorMsg"></div>
+
+    <div class="dl-card" id="dlCard">
+      <div class="dl-card-header">
+        DRIVER LICENSE — BACK
+        <span id="cardState">STATE OF CA</span>
+      </div>
+      <div class="mag-stripe"><div class="mag-stripe-band"></div></div>
+      <div class="dl-card-body">
+        <div class="dl-info-row">
+          <div>NAME<b id="cardName">—</b></div>
+          <div>DOB<b id="cardDob">—</b></div>
+          <div>DL#<b id="cardDl">—</b></div>
+          <div>EXP<b id="cardExp">—</b></div>
+        </div>
+        <div class="dl-barcode-area">
+          <canvas id="previewCanvas"></canvas>
+          <div class="dl-barcode-label">PDF417 · AAMVA 2016</div>
+        </div>
+      </div>
+      <div class="dl-card-footer">FOR TESTING PURPOSES ONLY · NOT A VALID GOVERNMENT DOCUMENT</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toMMDDYYYY(dateStr) {
+  if (!dateStr) return '00000000';
+  const [y, m, d] = dateStr.split('-');
+  return (m||'00') + (d||'00') + (y||'0000');
+}
+
+function toDisplay(dateStr) {
+  if (!dateStr) return '—';
+  const [y, m, d] = dateStr.split('-');
+  return `${m}/${d}/${y}`;
+}
+
+function buildPayload() {
+  const fn  = (document.getElementById('firstName').value||'').trim().toUpperCase();
+  const ln  = (document.getElementById('lastName').value||'').trim().toUpperCase();
+  const mn  = (document.getElementById('middleName').value||'').trim().toUpperCase();
+  const dob = toMMDDYYYY(document.getElementById('dob').value);
+  const sex = document.getElementById('sex').value;
+  const dl  = (document.getElementById('dlNumber').value||'').trim().toUpperCase();
+  const st  = document.getElementById('state').value;
+  const zip = (document.getElementById('zip').value||'').replace(/\D/g,'').padEnd(9,'0').slice(0,9);
+  const cty = (document.getElementById('city').value||'').trim().toUpperCase();
+  const str = (document.getElementById('street').value||'').trim().toUpperCase();
+  const exp = toMMDDYYYY(document.getElementById('expiry').value);
+  const iss = toMMDDYYYY(document.getElementById('issued').value);
+
+  // AAMVA 2016 standard format
+  const LF = '\n', RS = '\x1e', CR = '\r';
+  const header = `@${LF}${RS}${CR}ANSI 636014090002DL00410278ZC03200000`;
+  const data = [
+    'DL',
+    `DCS${ln}`,
+    `DAC${fn}`,
+    `DAD${mn}`,
+    `DBB${dob}`,
+    `DBA${exp}`,
+    `DBD${iss}`,
+    `DBC${sex}`,
+    `DAG${str}`,
+    `DAI${cty}`,
+    `DAJ${st}`,
+    `DAK${zip}`,
+    `DAQ${dl}`,
+    `DCF${dl}`,
+    `DCG USA`,
+  ].join(LF);
+
+  return header + data + CR;
+}
+
+function renderBarcode(canvasId, text, scale) {
+  try {
+    bwipjs.toCanvas(canvasId, {
+      bcid:        'pdf417',
+      text:        text,
+      scale:       scale,
+      columns:     5,
+      eclevel:     2,
+      includetext: false,
+      paddingwidth: 3,
+      paddingheight: 2,
+    });
+    return null;
+  } catch(e) {
+    return e.message || String(e);
+  }
+}
+
+function generateBarcode() {
+  const statusEl = document.getElementById('statusMsg');
+  const errorEl  = document.getElementById('errorMsg');
+  statusEl.textContent = '';
+  errorEl.textContent  = '';
+
+  const payload = buildPayload();
+  const err1 = renderBarcode('barcodeCanvas', payload, 3);
+  const err2 = renderBarcode('previewCanvas', payload, 1.5);
+
+  document.getElementById('outputPanel').classList.add('visible');
+
+  if (!err1 && !err2) {
+    statusEl.textContent = '✓ PDF417 BARCODE GENERATED';
+
+    const fn = (document.getElementById('firstName').value||'').toUpperCase();
+    const ln = (document.getElementById('lastName').value||'').toUpperCase();
+    const mn = (document.getElementById('middleName').value||'').toUpperCase();
+
+    document.getElementById('barcodeLabel').textContent =
+      `PDF417 · AAMVA 2016 · ${document.getElementById('dlNumber').value.toUpperCase()}`;
+    document.getElementById('cardName').textContent = `${ln}, ${fn} ${mn}`.trim();
+    document.getElementById('cardDob').textContent  = toDisplay(document.getElementById('dob').value);
+    document.getElementById('cardDl').textContent   = document.getElementById('dlNumber').value.toUpperCase();
+    document.getElementById('cardExp').textContent  = toDisplay(document.getElementById('expiry').value);
+    document.getElementById('cardState').textContent = `STATE OF ${document.getElementById('state').value}`;
+
+    document.getElementById('outputPanel').scrollIntoView({ behavior: 'smooth' });
+  } else {
+    errorEl.textContent = '✗ ' + (err1 || err2);
+  }
+}
+
+function downloadBarcode() {
+  const canvas = document.getElementById('barcodeCanvas');
+  if (!canvas.width) { alert('Generate a barcode first.'); return; }
+  const a = document.createElement('a');
+  a.download = `PDF417_${document.getElementById('dlNumber').value||'DL'}.png`;
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
+
+window.addEventListener('load', generateBarcode);
+</script>
+</body>
+</html>
